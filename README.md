@@ -52,7 +52,7 @@ https://nacos.io/zh-cn/docs/cluster-mode-quick-start.html
 
 写入成功截图
 
-![iShot_2024-08-26_17.40.21](/Users/skymurray/WorkSpace/java/NacosFileReadWrite/NacosFileReadWrite/iShot_2024-08-26_17.40.21.png)
+![iShot_2024-08-26_17.40.21](./iShot_2024-08-26_17.40.21.png)
 
 ![iShot_2024-08-26_17.41.40](./iShot_2024-08-26_17.41.40.png)
 
