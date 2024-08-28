@@ -16,9 +16,7 @@ com.alibaba.nacos.core.storage.kv.FileKvStorage#get
 com.alibaba.nacos.core.storage.kv.FileKvStorage#put
 ```
 
-#### NacosStateMachine的onApply调用堆栈
-
-
+#### BasePersistentServiceProcessor的onApply调用堆栈
 
 ```java
 TomcatEmbeddedWebappClassLoader@4a8355dd
@@ -50,9 +48,9 @@ com.alibaba.nacos.core.distributed.raft.JRaftServer#createMultiRaftGroup
 https://nacos.io/zh-cn/docs/cluster-mode-quick-start.html
 ```
 
-写入成功截图
+#### 写入成功截图
 
-![iShot_2024-08-26_17.40.21](./iShot_2024-08-26_17.40.21.png)
+![iShot_2024-08-26_17.40.21](/Users/skymurray/WorkSpace/java/NacosFileReadWrite/NacosFileReadWrite/iShot_2024-08-26_17.40.21.png)
 
 ![iShot_2024-08-26_17.41.40](./iShot_2024-08-26_17.41.40.png)
 
@@ -70,4 +68,3 @@ java -jar NacosRce.jar http://192.168.90.1:8848/ 7848 write
 <br />[https://exp.ci/2023/06/14/Nacos-JRaft-Hessian-反序列化分析/](https://exp.ci/2023/06/14/Nacos-JRaft-Hessian-%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E5%88%86%E6%9E%90/)
 <br />[https://github.com/c0olw/NacosRce](https://github.com/c0olw/NacosRce)
 
-<br />
