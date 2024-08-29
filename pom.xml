@@ -5,8 +5,8 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.nacostools</groupId>
-    <artifactId>NacosRce</artifactId>
-    <version>0.4-SNAPSHOT</version>
+    <artifactId>NacosFileReadWrite</artifactId>
+    <version>0.1-SNAPSHOT</version>
     <dependencies>
 
 
@@ -84,7 +84,7 @@
                     </descriptorRefs>
                     <archive>
                         <manifest>
-                            <mainClass>com.nacostools.rce.NacosRce</mainClass> <!-- 替换为你的主类 -->
+                            <mainClass>com.nacostools.rce.NacosFileReadWrite</mainClass> <!-- 替换为你的主类 -->
                         </manifest>
                     </archive>
                 </configuration>
