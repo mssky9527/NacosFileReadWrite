@@ -1,5 +1,5 @@
 Manifest-Version: 1.0
-Main-Class: com.nacostools.rce.NacosRce
+Main-Class: com.nacostools.rce.NacosFileReadWrite
 Class-Path: gson-2.9.0.jar jackson-datatype-jdk8-2.13.4.jar spring-webmv
  c-5.3.25.jar spring-boot-starter-logging-2.7.8.jar permit-reflect-0.3.j
  ar guava-31.1-android.jar jackson-core-2.13.4.jar grpc-core-1.50.2.jar 

